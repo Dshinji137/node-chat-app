@@ -36,18 +36,27 @@ io.on('connection',(socket) => {
   })
 
   socket.on('createMessage',function(message,callback) {
-    console.log('New message from client',message);
+    //console.log('New message from client',message);
+    var user = users.getUser(socket.id);
+
+    if(user.length>0 && isRealString(message.text)) {
+      io.to(user[0].room).emit('newMessage', generateMessage(user[0].name,message.text));
+    }
+
     callback();
-    io.emit('newMessage', generateMessage(message.from,message.text));
   });
 
   socket.on('createLocationMessage',(coords) => {
-    io.emit('newLocationMessage',generateLocationMessage('Admin',coords.lat,coords.lng));
+    var user = users.getUser(socket.id);
+
+    if(user.length>0) {
+      io.to(user[0].room).emit('newLocationMessage',generateLocationMessage(user[0].name,coords.lat,coords.lng));
+    }
   })
 
   socket.on('disconnect',() => {
     var user = users.removeUser(socket.id);
-    if(user) {
+    if(user.length>0) {
       io.to(user[0].room).emit('updateUserList',users.getUserList(user[0].room));
       io.to(user[0].room).emit('newMessage',generateMessage('Admin',`${user[0].name} has left`));
     }
